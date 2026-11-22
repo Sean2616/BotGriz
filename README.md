@@ -4,8 +4,8 @@ Bot Telegram untuk order nomor virtual & menerima SMS OTP dari **GrizzlySMS**, d
 
 ## ✨ Fitur
 
-- **Menu Interaktif (Inline Keyboard)**: pilih layanan populer -> lihat harga real-time per negara -> konfirmasi & order langsung.
-- **Command Cepat**: `/order <service> <country> [maxPrice]`, `/price <service> <country>`, `/balance`, `/status <id>`, `/retry <id>`, `/finish <id>`, `/cancel <id>`.
+- **Menu Interaktif (Inline Keyboard)**: pilih layanan populer -> lihat harga real-time per negara -> **pilih operator** (Telkomsel, Indosat, Axis, XL, dll. atau *Any*) -> konfirmasi & order langsung.
+- **Command Cepat**: `/order <service> <country> [operator] [maxPrice]`, `/operators <country>`, `/price <service> <country>`, `/balance`, `/status <id>`, `/retry <id>`, `/finish <id>`, `/cancel <id>`.
 - **Kontrol Order Langsung di Pesan**: tombol `🔄 Cek OTP`, `📩 Minta SMS Lagi`, `✅ Selesai`, dan `❌ Cancel (Refund)`.
 - **Keamanan Berlapis**:
   - Whitelist Telegram User ID (`ALLOWED_USER_IDS`) agar saldo GrizzlySMS tidak bisa dipakai orang lain.

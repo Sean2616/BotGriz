@@ -49,4 +49,53 @@ describe('GrizzlySMS API client', () => {
     assert.equal(res.ok, true);
     assert.match(res.message, /dibatalkan/i);
   });
+
+  it('passes operator parameter to getNumber when specified', async () => {
+    let calledUrl = '';
+    globalThis.fetch = async (url) => {
+      calledUrl = String(url);
+      return new Response('ACCESS_NUMBER:111222:+628120000111', { status: 200 });
+    };
+
+    const res = await grizzly.getNumber({
+      service: 'wa',
+      country: '6',
+      operator: 'telkomsel',
+    });
+    assert.equal(res.ok, true);
+    assert.match(calledUrl, /operator=telkomsel/);
+  });
+
+  it('omits operator parameter when operator is any', async () => {
+    let calledUrl = '';
+    globalThis.fetch = async (url) => {
+      calledUrl = String(url);
+      return new Response('ACCESS_NUMBER:111223:+628120000112', { status: 200 });
+    };
+
+    const res = await grizzly.getNumber({
+      service: 'wa',
+      country: '6',
+      operator: 'any',
+    });
+    assert.equal(res.ok, true);
+    assert.doesNotMatch(calledUrl, /operator=/);
+  });
+
+  it('parses getOperators countryOperators response', async () => {
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          status: 'success',
+          countryOperators: {
+            '6': ['any', 'telkomsel', 'indosat', 'axis'],
+          },
+        }),
+        { status: 200 }
+      );
+
+    const res = await grizzly.getOperators('6');
+    assert.equal(res.ok, true);
+    assert.deepEqual(res.operators, ['telkomsel', 'indosat', 'axis']);
+  });
 });
