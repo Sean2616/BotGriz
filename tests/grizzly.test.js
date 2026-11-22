@@ -52,7 +52,7 @@ describe('GrizzlySMS API client', () => {
     assert.match(res.message, /dibatalkan/i);
   });
 
-  it('passes operator parameter to getNumber when specified', async () => {
+  it('passes operator and phoneException parameters to getNumber for Indonesia', async () => {
     let calledUrl = '';
     globalThis.fetch = async (url) => {
       calledUrl = String(url);
@@ -66,9 +66,27 @@ describe('GrizzlySMS API client', () => {
     });
     assert.equal(res.ok, true);
     assert.match(calledUrl, /operator=telkomsel/);
+    assert.match(calledUrl, /phoneException=6283/);
   });
 
-  it('omits operator parameter when operator is any', async () => {
+  it('normalizes operator alias tsel/isat and sends matching phoneException', async () => {
+    let calledUrl = '';
+    globalThis.fetch = async (url) => {
+      calledUrl = String(url);
+      return new Response('ACCESS_NUMBER:111224:+628570000111', { status: 200 });
+    };
+
+    const res = await grizzly.getNumber({
+      service: 'wa',
+      country: '6',
+      operator: 'isat',
+    });
+    assert.equal(res.ok, true);
+    assert.match(calledUrl, /operator=indosat/);
+    assert.match(calledUrl, /phoneException=6282/);
+  });
+
+  it('omits operator and phoneException parameters when operator is any', async () => {
     let calledUrl = '';
     globalThis.fetch = async (url) => {
       calledUrl = String(url);
@@ -82,6 +100,7 @@ describe('GrizzlySMS API client', () => {
     });
     assert.equal(res.ok, true);
     assert.doesNotMatch(calledUrl, /operator=/);
+    assert.doesNotMatch(calledUrl, /phoneException=/);
   });
 
   it('parses getOperators countryOperators response', async () => {
