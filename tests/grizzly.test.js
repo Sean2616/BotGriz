@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
+import { parseOrderArgs } from '../lib/bot.js';
 import * as grizzly from '../lib/grizzly.js';
 
 const originalFetch = globalThis.fetch;
@@ -97,5 +98,57 @@ describe('GrizzlySMS API client', () => {
     const res = await grizzly.getOperators('6');
     assert.equal(res.ok, true);
     assert.deepEqual(res.operators, ['telkomsel', 'indosat', 'axis']);
+  });
+});
+
+describe('Order command argument parser', () => {
+  it('parses single order with default operator', () => {
+    assert.deepEqual(parseOrderArgs(['wa', '6']), {
+      service: 'wa',
+      country: '6',
+      operator: 'any',
+      qty: 1,
+      maxPrice: undefined,
+    });
+  });
+
+  it('parses multi-order without operator: /order wa 6 5', () => {
+    assert.deepEqual(parseOrderArgs(['wa', '6', '5']), {
+      service: 'wa',
+      country: '6',
+      operator: 'any',
+      qty: 5,
+      maxPrice: undefined,
+    });
+  });
+
+  it('parses multi-order with operator: /order wa 6 telkomsel 3', () => {
+    assert.deepEqual(parseOrderArgs(['wa', '6', 'telkomsel', '3']), {
+      service: 'wa',
+      country: '6',
+      operator: 'telkomsel',
+      qty: 3,
+      maxPrice: undefined,
+    });
+  });
+
+  it('parses multi-order with operator and maxPrice: /order wa 6 telkomsel 3 0.5', () => {
+    assert.deepEqual(parseOrderArgs(['wa', '6', 'telkomsel', '3', '0.5']), {
+      service: 'wa',
+      country: '6',
+      operator: 'telkomsel',
+      qty: 3,
+      maxPrice: '0.5',
+    });
+  });
+
+  it('parses decimal arg3 as maxPrice: /order tg 187 0.5', () => {
+    assert.deepEqual(parseOrderArgs(['tg', '187', '0.5']), {
+      service: 'tg',
+      country: '187',
+      operator: 'any',
+      qty: 1,
+      maxPrice: '0.5',
+    });
   });
 });

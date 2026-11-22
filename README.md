@@ -4,12 +4,11 @@ Bot Telegram untuk order nomor virtual & menerima SMS OTP dari **GrizzlySMS**, d
 
 ## ✨ Fitur
 
-- **Menu Interaktif (Inline Keyboard)**: pilih layanan populer -> lihat harga real-time per negara -> **pilih operator** (Telkomsel, Indosat, Axis, XL, dll. atau *Any*) -> konfirmasi & order langsung.
-- **Command Cepat**: `/order <service> <country> [operator] [maxPrice]`, `/operators <country>`, `/price <service> <country>`, `/balance`, `/status <id>`, `/retry <id>`, `/finish <id>`, `/cancel <id>`.
-- **Kontrol Order Langsung di Pesan**: tombol `🔄 Cek OTP`, `📩 Minta SMS Lagi`, `✅ Selesai`, dan `❌ Cancel (Refund)`.
-- **Keamanan Berlapis**:
-  - Whitelist Telegram User ID (`ALLOWED_USER_IDS`) agar saldo GrizzlySMS tidak bisa dipakai orang lain.
-  - Verifikasi `X-Telegram-Bot-Api-Secret-Token` (`WEBHOOK_SECRET`).
+- **Menu Interaktif (Inline Keyboard)**: pilih layanan populer → lihat harga real-time per negara → **pilih operator** (`telkomsel`, `indosat`, `axis`, `xl`, dll. atau *Any*) → **pilih jumlah nomor (1, 2, 3, 5, 10 sekaligus)** → order langsung.
+- **Order Massal (> 1 nomor)**: bisa lewat tombol (`Beli 2`, `Beli 3`, `Beli 5`, `Beli 10`) atau command `/order wa 6 5` / `/order wa 6 telkomsel 5`.
+- **Auto-Cancel Otomatis (310 detik)**: jika OTP tidak masuk selama **310 detik**, nomor otomatis dibatalkan & saldo di-refund (plus bonus **notifikasi OTP otomatis** saat cron aktif!).
+- **Command Lengkap**: `/order`, `/active`, `/operators`, `/price`, `/balance`, `/status`, `/retry`, `/finish`, `/cancel`.
+- **Keamanan Berlapis**: Whitelist Telegram User ID (`ALLOWED_USER_IDS`) + verifikasi `WEBHOOK_SECRET`.
 - **Zero Dependencies**: pure Node.js (ESM) dengan `fetch` bawaan, cold start sangat cepat di Vercel.
 
 ---
@@ -22,27 +21,42 @@ Bot Telegram untuk order nomor virtual & menerima SMS OTP dari **GrizzlySMS**, d
 3. Cek Telegram User ID kamu lewat **@userinfobot** (untuk `ALLOWED_USER_IDS`).
 
 ### 2. Upload ke GitHub & Deploy di Vercel
-1. Push folder project ini ke repository GitHub (boleh **Private**).
+1. Upload/push isi folder project ini ke repository GitHub kamu.
 2. Buka [vercel.com](https://vercel.com), klik **Add New Project**, lalu import repository tersebut.
 3. Di menu **Environment Variables**, tambahkan:
    - `TELEGRAM_BOT_TOKEN` = token dari @BotFather
    - `GRIZZLY_API_KEY` = API key GrizzlySMS kamu
-   - `ALLOWED_USER_IDS` = Telegram User ID kamu (pisahkan koma jika lebih dari 1, misal `123456,789012`)
+   - `ALLOWED_USER_IDS` = Telegram User ID kamu (pisahkan koma jika lebih dari 1)
    - `WEBHOOK_SECRET` = teks acak rahasia (misal `grizzly_rahasia_2026`)
-4. Klik **Deploy** dan tunggu sampai selesai. Kamu akan mendapat URL seperti `https://nama-bot-kamu.vercel.app`.
+   - `AUTO_CANCEL_SECONDS` = `310` *(opsional, default 310)*
+   - `MAX_ORDER_QTY` = `10` *(opsional, default 10)*
+4. Klik **Deploy**. Kamu akan mendapat URL seperti `https://nama-bot-kamu.vercel.app`.
 
 ### 3. Aktifkan Webhook Telegram (Sekali Saja)
-Buka URL berikut di browser (ganti sesuai domain Vercel & `WEBHOOK_SECRET` kamu):
+Buka URL berikut di browser:
 
 ```text
 https://nama-bot-kamu.vercel.app/api/setup?secret=grizzly_rahasia_2026
 ```
 
-Jika muncul respons:
-```json
-{ "ok": true, "message": "Webhook & daftar command bot berhasil didaftarkan!" }
-```
-Berarti bot sudah aktif 24/7! Langsung buka bot kamu di Telegram dan ketik `/start`.
+Jika muncul `"ok": true`, bot langsung aktif! Ketik `/start` di Telegram.
+
+---
+
+## ⏱️ Mengaktifkan Auto-Cancel 310 Detik di Background (Gratis)
+
+Karena Vercel Serverless bersifat *stateless* (mati setelah tiap request selesai), agar nomor otomatis di-cancel tepat setelah **310 detik tanpa perlu klik tombol apapun** (dan OTP otomatis masuk tanpa klik Refresh), lakukan 2 langkah gratis ini:
+
+1. **Hubungkan Upstash Redis (Gratis)**:
+   - Di dashboard project Vercel → tab **Storage** → **Create Database** → pilih **Upstash Redis** (Free Tier), atau buat langsung di [console.upstash.com](https://console.upstash.com).
+   - Pastikan Environment Variables `UPSTASH_REDIS_REST_URL` dan `UPSTASH_REDIS_REST_TOKEN` sudah masuk di Vercel, lalu **Redeploy**.
+2. **Pasang Cron 1 Menit (Gratis via cron-job.org)**:
+   - Daftar gratis di [cron-job.org](https://cron-job.org) → **Create Cronjob**.
+   - **URL**: `https://nama-bot-kamu.vercel.app/api/cron-autocancel?secret=grizzly_rahasia_2026`
+   - **Schedule**: *Every 1 minute* (`* * * * *`).
+   - Simpan! Setiap menit endpoint ini akan otomatis mengecek semua order aktif: mengirim OTP jika sudah masuk, atau **auto-cancel & refund** jika sudah ≥ 310 detik tanpa OTP.
+
+*(Catatan: Tanpa Upstash/Cron pun, bot tetap bekerja normal dan otomatis melakukan cancel saat kamu menekan tombol `🔄 Cek OTP` jika sudah lewat 310 detik.)*
 
 ---
 
@@ -51,6 +65,3 @@ Berarti bot sudah aktif 24/7! Langsung buka bot kamu di Telegram dan ketik `/sta
 ```bash
 npm test
 ```
-
-## 📌 Catatan Penting (Arsitektur Vercel)
-Karena Vercel menggunakan **Serverless Functions** (stateless, timeout 10 detik di plan Hobby), bot tidak melakukan polling background terus-menerus untuk menunggu OTP. Sebagai gantinya, setelah nomor didapat, cukup tekan tombol **`🔄 Cek OTP`** di pesan order kapan saja SMS sudah dikirim.
