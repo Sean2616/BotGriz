@@ -1,0 +1,13 @@
+{
+  "name": "grizzlysms-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram Bot untuk order SMS virtual di GrizzlySMS, berjalan 24/7 di Vercel via Webhook",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "set-webhook": "node scripts/set-webhook.js",
+    "test": "node --test tests/*.test.js"
+  }
+}
