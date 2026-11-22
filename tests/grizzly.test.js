@@ -99,6 +99,39 @@ describe('GrizzlySMS API client', () => {
     assert.equal(res.ok, true);
     assert.deepEqual(res.operators, ['telkomsel', 'indosat', 'axis']);
   });
+
+  it('parses getActiveActivations response with Unix time', async () => {
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          status: 'success',
+          activeActivations: [
+            {
+              activationId: '635468021',
+              serviceCode: 'wa',
+              phoneNumber: '628123456789',
+              countryCode: '6',
+              time: '1700000000',
+              cost: '15.00',
+            },
+          ],
+        }),
+        { status: 200 }
+      );
+
+    const res = await grizzly.getActiveActivations();
+    assert.equal(res.ok, true);
+    assert.equal(res.activations.length, 1);
+    assert.equal(res.activations[0].id, '635468021');
+    assert.equal(res.activations[0].phone, '628123456789');
+    assert.equal(res.activations[0].createdAt, 1700000000 * 1000);
+  });
+
+  it('handles NO_ACTIVATIONS cleanly', async () => {
+    globalThis.fetch = async () => new Response('NO_ACTIVATIONS', { status: 200 });
+    const res = await grizzly.getActiveActivations();
+    assert.deepEqual(res, { ok: true, activations: [] });
+  });
 });
 
 describe('Order command argument parser', () => {
