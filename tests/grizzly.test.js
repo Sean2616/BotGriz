@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { parseOrderArgs } from '../lib/bot.js';
+import { detectIndonesiaOperator } from '../lib/config.js';
 import * as grizzly from '../lib/grizzly.js';
 
 const originalFetch = globalThis.fetch;
@@ -183,5 +184,50 @@ describe('Order command argument parser', () => {
       qty: 1,
       maxPrice: '0.5',
     });
+  });
+
+  it('parses provider= and except= flags', () => {
+    assert.deepEqual(parseOrderArgs(['wa', '6', 'telkomsel', '3', 'provider=311,312', 'except=99']), {
+      service: 'wa',
+      country: '6',
+      operator: 'telkomsel',
+      qty: 3,
+      maxPrice: undefined,
+      providerIds: '311,312',
+      exceptProviderIds: '99',
+    });
+  });
+});
+
+describe('Indonesia operator prefix detector', () => {
+  it('detects Telkomsel, Indosat, XL, Axis, Three, Smartfren', () => {
+    assert.deepEqual(detectIndonesiaOperator('+6281234567890'), {
+      code: 'telkomsel',
+      name: 'Telkomsel',
+    });
+    assert.deepEqual(detectIndonesiaOperator('6285712345678'), {
+      code: 'indosat',
+      name: 'Indosat',
+    });
+    assert.deepEqual(detectIndonesiaOperator('087812345678'), {
+      code: 'xl',
+      name: 'XL Axiata',
+    });
+    assert.deepEqual(detectIndonesiaOperator('6283812345678'), {
+      code: 'axis',
+      name: 'Axis',
+    });
+    assert.deepEqual(detectIndonesiaOperator('6289612345678'), {
+      code: 'three',
+      name: 'Three (3)',
+    });
+    assert.deepEqual(detectIndonesiaOperator('6288212345678'), {
+      code: 'smartfren',
+      name: 'Smartfren',
+    });
+  });
+
+  it('returns null for non-Indonesian numbers', () => {
+    assert.equal(detectIndonesiaOperator('+19145550198'), null);
   });
 });
